@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A browser-based color vision simulator for comparing an image across color vision models." />
+    <meta name="theme-color" content="#080a0f" />
+    <title>Color Blindness Simulator</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+<header class="topbar home-topbar">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="eyebrow">COLOR LAB / LOCAL TOOL</p>
+            <h1>Color Blindness Simulator</h1>
+            <p class="app-tagline">Local image simulation</p>
+          </div>
+        </div>
+        <div class="privacy-badge">
+          <span class="privacy-dot" aria-hidden="true"></span>
+          <span>All processing happens in your browser. Your file is never uploaded to any server.</span>
+        </div>
+        <a class="filter-jump" href="#quick-views">Filter options ↓</a>
+      </header>
+<section class="builtin-demo" aria-labelledby="builtin-demo-title">
+        <div class="builtin-demo-copy">
+          <p class="eyebrow">TRY THE BUILT-IN EXAMPLE</p>
+          <h2 id="builtin-demo-title">Can you still read this status table?</h2>
+          <p>Red and green carry the status. Compare the original, a deutan simulation, and the grayscale difference map.</p>
+          <button class="primary-button builtin-demo-button" id="loadSampleButton" type="button">Open this sample in the simulator</button>
+          <small>No upload or account needed. This preview is generated in your browser.</small>
+        </div>
+        <div class="builtin-demo-views" aria-label="Built-in sample comparison">
+          <figure class="builtin-demo-view">
+            <figcaption>Original</figcaption>
+            <img id="sampleOriginal" src="./assets/status-table-demo.png?v=20260925" alt="A status table whose states are shown with red and green tiles" />
+          </figure>
+          <figure class="builtin-demo-view">
+            <figcaption>Deutan simulation</figcaption>
+            <canvas id="sampleSimulated" role="img" aria-label="The same status table under a deutan color vision simulation"></canvas>
+          </figure>
+          <figure class="builtin-demo-view builtin-demo-view--difference">
+            <figcaption>Difference</figcaption>
+            <canvas id="sampleDifference" role="img" aria-label="A grayscale map showing where the status table changed"></canvas>
+          </figure>
+        </div>
+      </section>
+<section class="workspace" id="simulator" aria-label="Color blindness simulator workspace">
+        <aside class="control-panel" aria-label="Simulation controls">
+          <div class="step-heading">
+            <span>01</span>
+            <h2>Choose an image</h2>
+          </div>
+
+          <label class="drop-zone" id="dropZone" for="fileInput" tabindex="0">
+            <input id="fileInput" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span class="upload-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img">
+                <path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v5h14v-5" />
+              </svg>
+            </span>
+            <strong>Drop an image here</strong>
+            <span>or tap to choose a file</span>
+            <small>JPEG · PNG · WebP</small>
+          </label>
+
+          <div class="file-summary" id="fileSummary" hidden>
+            <span class="file-thumb-wrap"><img id="fileThumb" alt="Selected source preview" /></span>
+            <span class="file-copy">
+              <strong id="fileName"></strong>
+              <small id="fileMeta"></small>
+            </span>
+            <button class="icon-button" id="replaceButton" type="button" aria-label="Replace image" title="Replace image">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.66-5.66L20 8.68M20 4v4.68h-4.68M20 12a8 8 0 0 1-13.66 5.66L4 15.32M4 20v-4.68h4.68" /></svg>
+            </button>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="step-heading">
+            <span>02</span>
+            <h2>Set the simulation</h2>
+          </div>
+
+          <div class="field-group">
+            <label for="algorithm">Simulation method</label>
+            <div class="select-wrap">
+              <select id="algorithm">
+                <option value="brettel">Brettel 1997</option>
+                <option value="vienot">Viénot 1999</option>
+                <option value="machado">Machado 2009</option>
+                <option value="deficiencyview">DeficiencyView · Machado 2009</option>
+              </select>
+              <svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+            </div>
+            <p class="field-note" id="algorithmNote">Two projection planes in linear RGB. Recommended here for tritan comparisons.</p>
+          </div>
+
+          <div class="field-group">
+            <div class="field-label-row">
+              <label for="severity">Simulation strength</label>
+              <output id="severityValue" for="severity">1.00</output>
+            </div>
+            <input id="severity" type="range" min="0" max="1" step="0.01" value="1" />
+            <div class="strength-presets" aria-label="Simulation strength presets">
+              <button type="button" data-strength="0">0</button>
+              <button type="button" data-strength="0.25">0.25</button>
+              <button type="button" data-strength="0.5">0.50</button>
+              <button type="button" data-strength="0.75">0.75</button>
+              <button type="button" data-strength="1" class="is-active">1.00</button>
+            </div>
+            <div class="range-labels"><span>No simulation</span><span>Full model</span></div>
+            <p class="field-note" id="severityNote">Brettel and Viénot blend toward the full model. Machado uses severity-specific matrices.</p>
+          </div>
+
+          <fieldset class="type-fieldset">
+            <legend>Deficiency views</legend>
+            <p class="fieldset-note">Select one or more. Every result includes a grayscale difference map.</p>
+            <label class="check-row">
+              <input type="checkbox" value="protan" checked />
+              <span class="check-ui" aria-hidden="true"></span>
+              <span><strong>Protan</strong><small>Red-cone deficiency</small></span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" value="deutan" checked />
+              <span class="check-ui" aria-hidden="true"></span>
+              <span><strong>Deutan</strong><small>Green-cone deficiency</small></span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" value="tritan" checked />
+              <span class="check-ui" aria-hidden="true"></span>
+              <span><strong>Tritan</strong><small>Blue-cone deficiency</small></span>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" value="achromatopsia" checked />
+              <span class="check-ui" aria-hidden="true"></span>
+              <span><strong>Achromatopsia</strong><small>Luminance grayscale in every method</small></span>
+            </label>
+          </fieldset>
+
+          <a class="primary-button" id="downloadComparison" aria-disabled="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
+            Download comparison PNG
+          </a>
+
+          <p class="trust-line">No sign-up · No usage counter · No watermarks</p>
+        </aside>
+
+        <section class="results-panel" aria-live="polite" aria-busy="false">
+          <div class="results-toolbar">
+            <div>
+              <p class="eyebrow">LIVE OUTPUT</p>
+              <h2>See change without relying on color</h2>
+              <p class="results-intro">Each result pairs the original, the simulation, and a high-contrast grayscale difference map.</p>
+            </div>
+            <div class="status-pill" id="statusPill"><span></span><b>Waiting for image</b></div>
+          </div>
+
+          <div class="empty-state" id="emptyState">
+            <div class="spectrum-orbit" aria-hidden="true">
+              <span></span><span></span><span></span><span></span>
+            </div>
+            <h3>Your three-part comparison appears here</h3>
+            <p>Use the built-in example above, or choose one JPEG, PNG, or WebP image.</p>
+          </div>
+
+          <div class="result-grid" id="resultGrid" hidden></div>
+        </section>
+      </section>
+<section class="scene-gallery" aria-labelledby="scene-gallery-title">
+        <div class="scene-gallery-heading">
+          <h2 id="scene-gallery-title">Try a scene</h2>
+          <p>No upload. Choose an example to use the same simulator and the settings you have selected.</p>
+        </div>
+        <div class="scene-grid" role="group" aria-label="Built-in image scenes">
+          <button class="scene-choice" type="button" data-scene="pencils" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Colored pencils with labeled positions"></canvas><span>Pencils</span></button>
+          <button class="scene-choice" type="button" data-scene="line-chart" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Three labeled lines with different dash and point styles"></canvas><span>Line chart</span></button>
+          <button class="scene-choice" type="button" data-scene="pie-chart" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Four labeled pie slices with distinct separators"></canvas><span>Pie chart</span></button>
+          <button class="scene-choice" type="button" data-scene="color-wheel" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="A numbered wheel of twelve hues"></canvas><span>Color wheel</span></button>
+          <button class="scene-choice" type="button" data-scene="landscape" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Generated photographic landscape with a lake, autumn trees, and mountains"></canvas><span>Landscape</span></button>
+          <button class="scene-choice" type="button" data-scene="clothing" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Six shirts with letter labels and different colors"></canvas><span>Clothing</span></button>
+          <button class="scene-choice" type="button" data-scene="traffic-lights" aria-pressed="false"><canvas width="264" height="176" role="img" aria-label="Three traffic signals with labeled positions and stop, wait, and go cues"></canvas><span>Traffic lights</span></button>
+        </div>
+        <p class="scene-feedback" id="sceneFeedback" role="status" aria-live="polite"></p>
+        <p class="scene-note">The landscape is a generated photographic example. The other scenes are drawn in your browser.</p>
+      </section>
+      <section class="home-filter-block" id="quick-views" aria-label="Quick simulation presets">
+        <section class="filter-card">
+          <h2>Quick views</h2>
+          <p>Load the built-in example and choose a common comparison. You can change the method, strength, and views in the controls above.</p>
+          <p class="filter-actions">
+            <a class="primary-button" href="#simulator" data-filter-preset="all">All views</a>
+            <a class="primary-button" href="#simulator" data-filter-preset="red-green">Red–green</a>
+            <a class="primary-button" href="#simulator" data-filter-preset="tritan">Tritan</a>
+          </p>
+          <p class="filter-feedback" id="filterFeedback" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+      <footer>
+        <p>Images are processed locally in your browser. Simulation is a design preview, not a medical diagnosis.</p>
+        <p>Methods: Brettel (1997), Viénot (1999), and Machado, Oliveira &amp; Fernandes (2009).</p>
+      </footer>
+    </main>
+<template id="resultCardTemplate">
+      <article class="result-card">
+        <div class="card-heading">
+          <div>
+            <span class="card-index"></span>
+            <h3 class="card-title"></h3>
+          </div>
+          <a class="download-button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>
+            Simulated PNG
+          </a>
+        </div>
+        <div class="comparison-strip">
+          <figure class="compare-pane source-pane">
+            <figcaption>Original</figcaption>
+            <div class="canvas-wrap"><canvas class="source-canvas"></canvas></div>
+          </figure>
+          <figure class="compare-pane simulated-pane">
+            <figcaption>Simulated</figcaption>
+            <div class="canvas-wrap"><canvas class="simulated-canvas"></canvas></div>
+          </figure>
+          <figure class="compare-pane difference-pane">
+            <figcaption>Difference</figcaption>
+            <div class="canvas-wrap"><canvas class="difference-canvas"></canvas></div>
+          </figure>
+        </div>
+        <p class="difference-note">Brighter pixels changed more. The map is auto-scaled for this view.</p>
+        <div class="card-meta"><span class="algorithm-label"></span><span class="severity-label"></span></div>
+      </article>
+    </template>
+  </body>
+</html>
+
